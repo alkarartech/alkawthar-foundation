@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
+import { Platform, View } from "react-native";
 import Colors from "@/constants/colors";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -35,11 +36,13 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
+  const GestureWrapper = Platform.OS === 'web' ? View : GestureHandlerRootView;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureWrapper style={{ flex: 1 }}>
         <RootLayoutNav />
-      </GestureHandlerRootView>
+      </GestureWrapper>
     </QueryClientProvider>
   );
 }
