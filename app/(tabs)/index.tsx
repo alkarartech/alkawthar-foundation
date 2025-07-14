@@ -9,42 +9,7 @@ import Colors from "@/constants/colors";
 import { useState, useEffect } from "react";
 import { init, toggleTimeFormat, updateTimeFormat, PrayerTimesData } from "@/hooks/prayerTimes";
 import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
-
-// Web-compatible WebView component
-const WebViewComponent = Platform.select({
-  web: ({ source, style }: { source: { uri: string }, style: any }) => (
-    <iframe 
-      src={source.uri} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        border: 'none',
-        ...style 
-      }} 
-    />
-  ),
-  default: () => {
-    try {
-      const { WebView } = require('react-native-webview');
-      return WebView;
-    } catch {
-      return ({ source, style }: { source: { uri: string }, style: any }) => (
-        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }]}>
-          <Text>WebView not available on this platform</Text>
-          <TouchableOpacity onPress={() => {
-            if (Platform.OS === 'web') {
-              window.open(source.uri, '_blank');
-            }
-          }}>
-            <Text style={{ color: Colors.primary.green, textDecorationLine: 'underline' }}>
-              Open in browser
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  }
-});
+import WebViewWrapper from "@/components/WebViewWrapper";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -294,7 +259,7 @@ export default function HomeScreen() {
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
-          <WebViewComponent
+          <WebViewWrapper
             source={{ uri: "https://www.zeffy.com/en-US/donation-form/donate-to-contribute-to-the-new-mosque" }}
             style={styles.webview}
           />
