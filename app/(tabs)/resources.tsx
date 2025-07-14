@@ -9,6 +9,7 @@ import {
   Heart, 
   Users, 
   Plane,
+  book-marked,
   Search,
   ChevronRight 
 } from 'lucide-react-native';
@@ -41,7 +42,7 @@ export default function ResourcesScreen() {
       id: 'dua',
       title: 'Daily Duas',
       subtitle: 'Access categorized supplications',
-      icon: Heart,
+      icon: book-marked,
       route: '/dua',
     },
     {
