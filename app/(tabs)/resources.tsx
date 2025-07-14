@@ -68,7 +68,8 @@ export default function ResourcesScreen() {
     {
       id: 'hajj',
       title: getTranslation(language, 'hajjUmrah') || 'Hajj & Umrah',
-      subtitle: getTraining',
+      subtitle: getTranslation(language, 'hajjUmrahSubtitle') || 'Pilgrimage guidance and training',
+      icon: Plane,
       route: '/hajj-umrah',
     },
   ].filter(feature => 
@@ -111,7 +112,7 @@ export default function ResourcesScreen() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {filteredFeatures.map((item) => (
+        {features.map((item) => (
           <TouchableOpacity
             key={item.id}
             style={[
