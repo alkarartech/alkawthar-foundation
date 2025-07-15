@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bunx rork start -p bw0eywolyneqx3fi4zrzg --tunnel",
     "start-web": "bunx rork start -p bw0eywolyneqx3fi4zrzg --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p bw0eywolyneqx3fi4zrzg --web --tunnel"
+    "start-web-dev": "DEBUG=expo* bunx rork start -p bw0eywolyneqx3fi4zrzg --web --tunnel",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
