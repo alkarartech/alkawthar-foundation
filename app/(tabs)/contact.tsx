@@ -83,7 +83,7 @@ export default function ContactScreen() {
 
           <View style={styles.contactItem}>
             <MapPin size={20} color={Colors.primary.green} />
-            <Text style={styles.contactText}>5460 Canada Way, Burnaby, BC V5E 3N5</Text>
+            <Text style={styles.contactText}>6655 154 St, Surrey, BC V3S 7C6</Text>
           </View>
 
           <View style={styles.contactItem}>
