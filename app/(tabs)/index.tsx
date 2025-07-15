@@ -107,6 +107,13 @@ export default function HomeScreen() {
     setShowDonationModal(true);
   };
 
+  // Slideshow images
+  const bannerImages = [
+    "https://i.ytimg.com/vi/_Jr9_TNyPmI/maxresdefault.jpg",
+    "https://i.ytimg.com/vi/3OJw68SfDg4/maxresdefault.jpg",
+    "https://cdnarchitect.s3.ca-central-1.amazonaws.com/2024/07/03162500/01-1024x512.jpg"
+  ];
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <AppHeader />
@@ -115,14 +122,8 @@ export default function HomeScreen() {
         <Banner
           title="Welcome to Al Kawthar Foundation"
           subtitle="A center for spiritual growth and community"
-          imageUrl="https://cdnarchitect.s3.ca-central-1.amazonaws.com/2024/07/03162500/01-1024x512.jpg"
+          images={bannerImages}
         />
-
-        <View style={styles.donateSection}>
-          <TouchableOpacity style={styles.donateButton} onPress={handleDonate}>
-            <Text style={styles.donateButtonText}>Donate</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.section}>
           <Text style={styles.missionTitle}>Our Mission</Text>
@@ -162,6 +163,12 @@ export default function HomeScreen() {
               </View>
             </Card>
           )}
+        </View>
+
+        <View style={styles.donateSection}>
+          <TouchableOpacity style={styles.donateButton} onPress={handleDonate}>
+            <Text style={styles.donateButtonText}>Donate</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -280,20 +287,21 @@ const styles = StyleSheet.create({
   },
   donateButton: {
     backgroundColor: Colors.primary.green,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 48,
+    borderRadius: 30,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   donateButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     color: Colors.text.light,
     textAlign: "center",
+    letterSpacing: 0.5,
   },
   section: {
     padding: 16,
