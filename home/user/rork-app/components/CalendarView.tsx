@@ -18,6 +18,9 @@ export default function CalendarView({ style }: CalendarViewProps) {
           styles.webview,
           Platform.OS === 'web' && styles.webviewWeb
         ]}
+        startInLoadingState={true}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
       />
     </View>
   );
@@ -40,7 +43,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   webviewWeb: {
-    minHeight: 600,
-    height: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });
