@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.green,
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 5,
     minWidth: "18%",
     flex: 1,
     maxWidth: "19%",
