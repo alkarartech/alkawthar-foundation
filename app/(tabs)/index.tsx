@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Modal, TouchableOpacity, Platform } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Modal, TouchableOpacity, Platform, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Banner from "@/components/Banner";
 import AppHeader from "@/components/AppHeader";
@@ -10,6 +10,10 @@ import { useState, useEffect } from "react";
 import { init, toggleTimeFormat, updateTimeFormat, PrayerTimesData } from "@/hooks/prayerTimes";
 import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
 import WebViewWrapper from "@/components/WebViewWrapper";
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isDesktop = isWeb && width >= 768;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -115,8 +119,8 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <AppHeader />
+    <SafeAreaView style={styles.container} edges={isDesktop ? [] : ["top"]}>
+      {!isDesktop && <AppHeader />}
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Banner

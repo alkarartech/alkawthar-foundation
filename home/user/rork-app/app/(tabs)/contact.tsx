@@ -10,51 +10,22 @@ import {
   Platform,
   Image,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
+import AppHeader from "@/components/AppHeader";
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isDesktop = isWeb && width >= 768;
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Colors from "@/constants/colors";
 import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react-native";
 import useContact, { ContactFormData } from "@/hooks/useContact";
-// Web-compatible WebView component
-const WebViewComponent = Platform.select({
-  web: ({ source, style }: { source: { uri: string }, style: any }) => (
-    <iframe 
-      src={source.uri} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        border: 'none',
-        borderRadius: '8px',
-        ...style 
-      }} 
-    />
-  ),
-  default: () => {
-    try {
-      const { WebView } = require('react-native-webview');
-      return WebView;
-    } catch {
-      return ({ source, style }: { source: { uri: string }, style: any }) => (
-        <View style={[style, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0', borderRadius: 8 }]}>
-          <Text>Feedback form not available on this platform</Text>
-          <TouchableOpacity onPress={() => {
-            if (Platform.OS === 'web') {
-              window.open(source.uri, '_blank');
-            }
-          }}>
-            <Text style={{ color: Colors.primary.green, textDecorationLine: 'underline', marginTop: 8 }}>
-              Open in browser
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-  }
-});
+import WebViewWrapper from "@/components/WebViewWrapper";
 
 export default function ContactScreen() {
   const { loading, error, success, submitContactForm } = useContact();
@@ -99,8 +70,9 @@ export default function ContactScreen() {
   const openURL = (url: string) => Linking.openURL(url);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Contact Us" />
+    <SafeAreaView style={styles.container} edges={isDesktop ? [] : ["top"]}>
+      {!isDesktop && <AppHeader />}
+      {!isDesktop && <Header title="Contact Us" />}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
 
         {/* Logo and About Section */}
@@ -118,7 +90,7 @@ export default function ContactScreen() {
 
           <View style={styles.contactItem}>
             <MapPin size={20} color={Colors.primary.green} />
-            <Text style={styles.contactText}>5460 Canada Way, Burnaby, BC V5E 3N5</Text>
+            <Text style={styles.contactText}>6655 154 St, Surrey, BC V3S 7C6</Text>
           </View>
 
           <View style={styles.contactItem}>
@@ -151,7 +123,7 @@ export default function ContactScreen() {
         {/* Feedback Form (WebView) */}
         <Card style={{ height: 400, marginBottom: 16 }}>
           <Text style={styles.formTitle}>Feedback Form</Text>
-          <WebViewComponent source={{ uri: 'https://forms.gle/YSA8ZtFu4ioNB4Ri9' }} style={{ flex: 1 }} />
+          <WebViewWrapper source={{ uri: 'https://forms.gle/YSA8ZtFu4ioNB4Ri9' }} style={{ flex: 1 }} />
         </Card>
 
         {/* Developer Credit */}

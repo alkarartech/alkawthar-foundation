@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Platform, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AppHeader from '@/components/AppHeader';
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isDesktop = isWeb && width >= 768;
 import { 
   Clock, 
   BookOpen, 
@@ -67,7 +72,8 @@ export default function ResourcesScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={isDesktop ? [] : ['top']}>
+      {!isDesktop && <AppHeader />}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resources</Text>
       </View>

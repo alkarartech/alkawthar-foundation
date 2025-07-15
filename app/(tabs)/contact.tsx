@@ -10,9 +10,15 @@ import {
   Platform,
   Image,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
+import AppHeader from "@/components/AppHeader";
+
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isDesktop = isWeb && width >= 768;
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -64,8 +70,9 @@ export default function ContactScreen() {
   const openURL = (url: string) => Linking.openURL(url);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <Header title="Contact Us" />
+    <SafeAreaView style={styles.container} edges={isDesktop ? [] : ["top"]}>
+      {!isDesktop && <AppHeader />}
+      {!isDesktop && <Header title="Contact Us" />}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
 
         {/* Logo and About Section */}
