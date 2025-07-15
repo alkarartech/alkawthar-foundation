@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Platform, Dimensions } from 'react-native';
-import WebViewWrapper from './WebViewWrapper';
+import WebViewWrapper from '@/components/WebViewWrapper';
 
 const { width } = Dimensions.get('window');
 
