@@ -68,7 +68,7 @@ export default function FullCalendarScreen() {
   };
 
   const getEventsForDate = (date: Date): ProcessedEvent[] => {
-    return events.filter(event => {
+    return events.filter((event: ProcessedEvent) => {
       const eventDate = event.startDate;
       return eventDate.toDateString() === date.toDateString();
     });
@@ -179,7 +179,7 @@ export default function FullCalendarScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Events</Text>
           <View style={styles.eventsContainer}>
-            {events.slice(0, 5).map((event) => (
+            {events.slice(0, 5).map((event: ProcessedEvent) => (
               <TouchableOpacity
                 key={event.id}
                 style={styles.eventCard}
