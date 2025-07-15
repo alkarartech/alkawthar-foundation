@@ -150,7 +150,7 @@ function PrayTimes(method = 'Jafari') {
       const dhuhr = this.midDay(times.dhuhr);
       const maghrib = sunset + (15 / 60);
       const nightDuration = this.timeDiff(sunset, sunrise + 24);
-      let fajr = sunrise - (nightDuration / 4);
+      let fajr = sunrise - (nightDuration / 4) - (15 / 60);
       const maxFajrSunriseDiff = 100 / 60;
       if (sunrise - fajr > maxFajrSunriseDiff) {
         fajr = sunrise - maxFajrSunriseDiff;
@@ -257,7 +257,7 @@ function getPrayerTimes(date: Date) {
     ...times,
     date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
     timezone: 'America/Vancouver',
-    fajrDelay: 0, // Updated to reflect no delay
+    fajrDelay: 15,
   };
 }
 
