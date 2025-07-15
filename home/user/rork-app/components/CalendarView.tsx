@@ -35,10 +35,6 @@ export default function CalendarView({ style }: CalendarViewProps) {
           width: dimensions.width, 
           height: dimensions.height 
         }]}
-        scalesPageToFit={Platform.OS !== 'web'}
-        startInLoadingState={true}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
       />
     </View>
   );
