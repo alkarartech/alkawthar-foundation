@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppHeader from "@/components/AppHeader";
 import Colors from "@/constants/colors";
-import useEvents from "@/hooks/useEvents";
+import useGoogleCalendarEvents from "@/hooks/useGoogleCalendarEvents";
 import { useRouter } from "expo-router";
 import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
 import CalendarView from "@/components/CalendarView";
@@ -12,7 +12,7 @@ const isWeb = Platform.OS === 'web';
 const isDesktop = isWeb && width >= 768;
 
 export default function CalendarEventsScreen() {
-  const { events, loading, error } = useEvents();
+  const { events, loading, error } = useGoogleCalendarEvents();
   const router = useRouter();
 
   return (
@@ -21,7 +21,15 @@ export default function CalendarEventsScreen() {
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Community Calendar & Events</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Community Calendar & Events</Text>
+            <TouchableOpacity 
+              style={styles.calendarButton}
+              onPress={() => router.push('/full-calendar')}
+            >
+              <Calendar size={24} color={Colors.primary.green} />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>
             Stay connected with our community events and programs
           </Text>
@@ -46,7 +54,13 @@ export default function CalendarEventsScreen() {
               <TouchableOpacity
                 key={event.id}
                 style={styles.eventCard}
-                onPress={() => router.push(`/event/${event.id}`)}
+                onPress={() => {
+                  if (event.htmlLink && event.htmlLink !== '#') {
+                    router.push(event.htmlLink);
+                  } else {
+                    router.push(`/event/${event.id}`);
+                  }
+                }}
               >
                 <View style={styles.eventDateContainer}>
                   <View style={styles.eventDateBox}>
@@ -120,6 +134,32 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     alignItems: 'center',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    position: 'relative',
+  },
+  calendarButton: {
+    position: 'absolute',
+    right: 0,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.background.offWhite,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+      default: {},
+    }),
   },
   title: {
     fontSize: 24,
