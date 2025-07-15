@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppHeader from "@/components/AppHeader";
 import Colors from "@/constants/colors";
-import useGoogleCalendarEvents from "@/hooks/useGoogleCalendarEvents";
+import useGoogleCalendarEvents, { ProcessedEvent } from "@/hooks/useGoogleCalendarEvents";
 import { useRouter } from "expo-router";
 import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
 import CalendarView from "@/components/CalendarView";
@@ -50,7 +50,7 @@ export default function CalendarEventsScreen() {
           </View>
         ) : (
           <View style={styles.eventsContainer}>
-            {events.map((event) => (
+            {events.map((event: ProcessedEvent) => (
               <TouchableOpacity
                 key={event.id}
                 style={styles.eventCard}
