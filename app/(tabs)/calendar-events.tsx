@@ -22,7 +22,7 @@ export default function CalendarEventsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>Community Calendar & Events</Text>
+            <Text style={styles.title}>Events</Text>
             <TouchableOpacity 
               style={styles.calendarButton}
               onPress={() => router.push('/full-calendar')}
