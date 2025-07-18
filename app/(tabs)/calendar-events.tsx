@@ -19,6 +19,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -60,7 +62,7 @@ export default function CalendarEventsScreen() {
             body: `${event.title} starts in 30 minutes at ${event.location}`,
             data: { eventId: event.id },
           },
-          trigger: notificationTime,
+          trigger: { date: notificationTime },
         });
         
         Alert.alert(
