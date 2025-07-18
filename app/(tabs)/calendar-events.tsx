@@ -1,19 +1,80 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, Platform, Dimensions, Linking } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, Platform, Dimensions, Linking, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
 import AppHeader from "@/components/AppHeader";
 import Colors from "@/constants/colors";
 import useGoogleCalendarEvents, { ProcessedEvent } from "@/hooks/useGoogleCalendarEvents";
 import { useRouter } from "expo-router";
-import { Calendar, Clock, MapPin, ChevronRight, Download, ExternalLink } from "lucide-react-native";
+import { Calendar, Clock, MapPin, ChevronRight, Download, ExternalLink, Bell, CalendarDays, List } from "lucide-react-native";
 import WebViewWrapper from "@/components/WebViewWrapper";
+import * as Notifications from 'expo-notifications';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const isDesktop = isWeb && width >= 768;
 
+// Configure notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export default function CalendarEventsScreen() {
   const { events, loading, error } = useGoogleCalendarEvents();
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<'month' | 'schedule'>('schedule');
+  const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Request notification permissions
+    const requestPermissions = async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        setNotificationPermission(status);
+      }
+    };
+    requestPermissions();
+  }, []);
+
+  const scheduleEventNotification = async (event: ProcessedEvent) => {
+    if (Platform.OS === 'web' || notificationPermission !== 'granted') {
+      Alert.alert(
+        'Notifications',
+        Platform.OS === 'web' 
+          ? 'Notifications are not supported on web. Please use your calendar app to set reminders.'
+          : 'Please enable notifications in your device settings to receive event reminders.'
+      );
+      return;
+    }
+
+    try {
+      const notificationTime = new Date(event.startDate.getTime() - 30 * 60 * 1000); // 30 minutes before
+      
+      if (notificationTime > new Date()) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Upcoming Event',
+            body: `${event.title} starts in 30 minutes at ${event.location}`,
+            data: { eventId: event.id },
+          },
+          trigger: notificationTime,
+        });
+        
+        Alert.alert(
+          'Notification Scheduled',
+          `You'll receive a reminder 30 minutes before "${event.title}" starts.`
+        );
+      } else {
+        Alert.alert('Event Time Passed', 'This event has already started or passed.');
+      }
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      Alert.alert('Error', 'Failed to schedule notification. Please try again.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={isDesktop ? [] : ["top"]}>
@@ -22,7 +83,7 @@ export default function CalendarEventsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>Events</Text>
+            <Text style={styles.title}>Events & Calendar</Text>
             <TouchableOpacity 
               style={styles.calendarButton}
               onPress={() => router.push('/full-calendar')}
@@ -35,17 +96,90 @@ export default function CalendarEventsScreen() {
           </Text>
         </View>
         
-        <View style={styles.calendarSection}>
-          <Text style={styles.sectionTitle}>Calendar Agenda</Text>
-          <View style={styles.agendaContainer}>
-            <WebViewWrapper
-              source={{ 
-                uri: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FVancouver&showPrint=0&title=Al%20Kawthar%20Calendar&mode=AGENDA&src=YWxrYXd0aGFyZm91bmRhdGlvbmJjQGdtYWlsLmNvbQ&src=ZW4uaXNsYW1pYyNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%23039be5&color=%234285f4"
-              }}
-              style={styles.agendaWebView}
-            />
-          </View>
+        {/* Sync Buttons */}
+        <View style={styles.syncButtonsContainer}>
+          <TouchableOpacity 
+            style={styles.syncButtonPrimary}
+            onPress={() => {
+              const icalUrl = "https://calendar.google.com/calendar/ical/alkawtharfoundationbc%40gmail.com/public/basic.ics";
+              if (Platform.OS === 'web') {
+                window.open(icalUrl, '_blank');
+              } else {
+                Linking.openURL(icalUrl);
+              }
+            }}
+          >
+            <Download size={20} color={Colors.text.light} />
+            <Text style={styles.syncButtonPrimaryText}>Sync with iCal</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.syncButtonSecondary}
+            onPress={() => {
+              const googleCalUrl = "https://calendar.google.com/calendar/u/0?cid=YWxrYXd0aGFyZm91bmRhdGlvbmJjQGdtYWlsLmNvbQ";
+              if (Platform.OS === 'web') {
+                window.open(googleCalUrl, '_blank');
+              } else {
+                Linking.openURL(googleCalUrl);
+              }
+            }}
+          >
+            <ExternalLink size={18} color={Colors.primary.green} />
+            <Text style={styles.syncButtonSecondaryText}>Add to Google Calendar</Text>
+          </TouchableOpacity>
         </View>
+        
+        {/* View Mode Toggle */}
+        <View style={styles.viewToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.viewToggleButton, viewMode === 'month' && styles.viewToggleButtonActive]}
+            onPress={() => setViewMode('month')}
+          >
+            <CalendarDays size={20} color={viewMode === 'month' ? Colors.text.light : Colors.primary.green} />
+            <Text style={[styles.viewToggleText, viewMode === 'month' && styles.viewToggleTextActive]}>
+              Month View
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.viewToggleButton, viewMode === 'schedule' && styles.viewToggleButtonActive]}
+            onPress={() => setViewMode('schedule')}
+          >
+            <List size={20} color={viewMode === 'schedule' ? Colors.text.light : Colors.primary.green} />
+            <Text style={[styles.viewToggleText, viewMode === 'schedule' && styles.viewToggleTextActive]}>
+              Schedule View
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Calendar View */}
+        {viewMode === 'month' && (
+          <View style={styles.calendarSection}>
+            <Text style={styles.sectionTitle}>Monthly Calendar</Text>
+            <View style={styles.agendaContainer}>
+              <WebViewWrapper
+                source={{ 
+                  uri: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FVancouver&showPrint=0&title=Al%20Kawthar%20Calendar&mode=MONTH&src=YWxrYXd0aGFyZm91bmRhdGlvbmJjQGdtYWlsLmNvbQ&src=ZW4uaXNsYW1pYyNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%23039be5&color=%234285f4"
+                }}
+                style={styles.agendaWebView}
+              />
+            </View>
+          </View>
+        )}
+        
+        {viewMode === 'schedule' && (
+          <View style={styles.calendarSection}>
+            <Text style={styles.sectionTitle}>Schedule View</Text>
+            <View style={styles.agendaContainer}>
+              <WebViewWrapper
+                source={{ 
+                  uri: "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FVancouver&showPrint=0&title=Al%20Kawthar%20Calendar&mode=AGENDA&src=YWxrYXd0aGFyZm91bmRhdGlvbmJjQGdtYWlsLmNvbQ&src=ZW4uaXNsYW1pYyNob2xpZGF5QGdyb3VwLnYuY2FsZW5kYXIuZ29vZ2xlLmNvbQ&color=%23039be5&color=%234285f4"
+                }}
+                style={styles.agendaWebView}
+              />
+            </View>
+          </View>
+        )}
         
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -113,7 +247,13 @@ export default function CalendarEventsScreen() {
                     )}
                   </View>
                   
-                  <View style={styles.eventArrow}>
+                  <View style={styles.eventActions}>
+                    <TouchableOpacity 
+                      style={styles.notificationButton}
+                      onPress={() => scheduleEventNotification(event)}
+                    >
+                      <Bell size={16} color={Colors.primary.green} />
+                    </TouchableOpacity>
                     <ChevronRight size={20} color={Colors.text.muted} />
                   </View>
                 </TouchableOpacity>
@@ -122,44 +262,7 @@ export default function CalendarEventsScreen() {
           </View>
         )}
         
-        <View style={styles.syncSection}>
-          <View style={styles.syncCard}>
-            <Text style={styles.syncTitle}>Sync with Your Calendar</Text>
-            <Text style={styles.syncDescription}>
-              Add our calendar to your iPhone Calendar to stay updated with all our events and programs.
-            </Text>
-            
-            <TouchableOpacity 
-              style={styles.syncButton}
-              onPress={() => {
-                const icalUrl = "https://calendar.google.com/calendar/ical/alkawtharfoundationbc%40gmail.com/public/basic.ics";
-                if (Platform.OS === 'web') {
-                  window.open(icalUrl, '_blank');
-                } else {
-                  Linking.openURL(icalUrl);
-                }
-              }}
-            >
-              <Download size={20} color={Colors.text.light} />
-              <Text style={styles.syncButtonText}>Sync with iPhone Calendar (iCal)</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.linkButton}
-              onPress={() => {
-                const googleCalUrl = "https://calendar.google.com/calendar/u/0?cid=YWxrYXd0aGFyZm91bmRhdGlvbmJjQGdtYWlsLmNvbQ";
-                if (Platform.OS === 'web') {
-                  window.open(googleCalUrl, '_blank');
-                } else {
-                  Linking.openURL(googleCalUrl);
-                }
-              }}
-            >
-              <ExternalLink size={16} color={Colors.primary.green} />
-              <Text style={styles.linkButtonText}>Add to Google Calendar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
 
         <View style={styles.infoSection}>
           <View style={styles.infoCard}>
@@ -184,6 +287,99 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.light,
+  },
+  syncButtonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  syncButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary.green,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      default: {},
+    }),
+  },
+  syncButtonPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.light,
+  },
+  syncButtonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background.offWhite,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary.green,
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+      default: {},
+    }),
+  },
+  syncButtonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary.green,
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    backgroundColor: Colors.background.offWhite,
+    borderRadius: 12,
+    padding: 4,
+  },
+  viewToggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  viewToggleButtonActive: {
+    backgroundColor: Colors.primary.green,
+  },
+  viewToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary.green,
+  },
+  viewToggleTextActive: {
+    color: Colors.text.light,
   },
   calendarSection: {
     marginBottom: 24,
@@ -372,78 +568,18 @@ const styles = StyleSheet.create({
     color: Colors.text.dark,
     lineHeight: 20,
   },
-  eventArrow: {
+  eventActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingRight: 16,
+    gap: 12,
   },
-  syncSection: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  syncCard: {
-    backgroundColor: Colors.primary.green,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-  },
-  syncTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.light,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  syncDescription: {
-    fontSize: 14,
-    color: Colors.text.light,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-    opacity: 0.9,
-  },
-  syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.light,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    gap: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-      default: {},
-    }),
-  },
-  syncButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.text.dark,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  notificationButton: {
+    padding: 8,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Colors.background.offWhite,
   },
-  linkButtonText: {
-    fontSize: 14,
-    color: Colors.text.light,
-    fontWeight: '500',
-  },
+
   infoSection: {
     padding: 16,
   },
