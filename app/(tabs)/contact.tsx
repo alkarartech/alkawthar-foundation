@@ -20,79 +20,47 @@ const ContactScreen = () => {
     setIsLoading(true);
 
     try {
-      if (Platform.OS === 'web') {
-        // For web, use EmailJS directly with the browser API
-        const emailjs = (window as any).emailjs;
-        if (emailjs) {
-          const result = await emailjs.send('service_rdevwae', 'template_tph2uqc', {
-            title: title,
-            name: name,
-            message: message,
-            email: email,
-          });
-          console.log('EmailJS result:', result);
-          Alert.alert('Success', 'Your message has been sent successfully!');
-          setTitle('');
-          setName('');
-          setEmail('');
-          setMessage('');
-        } else {
-          // Fallback: wait a bit for EmailJS to load and try again
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const emailjsRetry = (window as any).emailjs;
-          if (emailjsRetry) {
-            await emailjsRetry.send('service_rdevwae', 'template_tph2uqc', {
-              title: title,
-              name: name,
-              message: message,
-              email: email,
-            });
-            Alert.alert('Success', 'Your message has been sent successfully!');
-            setTitle('');
-            setName('');
-            setEmail('');
-            setMessage('');
-          } else {
-            throw new Error('EmailJS not available');
-          }
-        }
-      } else {
-        // For mobile, use a backend service to send emails
-        const response = await fetch('https://toolkit.rork.com/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: 'alkawtharfoundationBC@gmail.com',
-            subject: `${title} - Message from ${name}`,
-            html: `
-              <h3>New Contact Form Submission</h3>
-              <p><strong>Subject:</strong> ${title}</p>
-              <p><strong>From:</strong> ${name}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Message:</strong></p>
-              <p>${message.replace(/\n/g, '<br>')}</p>
-            `,
-            text: `New Contact Form Submission\n\nSubject: ${title}\nFrom: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
-          }),
-        });
+      // Use Formspree for both web and mobile - it's reliable and free
+      const response = await fetch('https://formspree.io/f/xdkogqpz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: title,
+          name: name,
+          email: email,
+          message: message,
+          _replyto: email,
+          _subject: `${title} - Message from ${name}`,
+        }),
+      });
 
-        if (response.ok) {
-          Alert.alert('Success', 'Your message has been sent successfully!');
-          setTitle('');
-          setName('');
-          setEmail('');
-          setMessage('');
-        } else {
-          const errorData = await response.text();
-          console.error('Email send error:', errorData);
-          throw new Error('Failed to send email');
-        }
+      if (response.ok) {
+        Alert.alert('Success', 'Your message has been sent successfully!');
+        setTitle('');
+        setName('');
+        setEmail('');
+        setMessage('');
+      } else {
+        throw new Error('Failed to send email');
       }
     } catch (error) {
       console.error('Email send error:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again later.');
+      // Fallback to device's email client
+      const emailUrl = `mailto:alkawtharfoundationBC@gmail.com?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`From: ${name} (${email})\n\nMessage:\n${message}`)}`;
+      
+      try {
+        const canOpen = await Linking.canOpenURL(emailUrl);
+        if (canOpen) {
+          await Linking.openURL(emailUrl);
+          Alert.alert('Email Client Opened', 'Please send the email from your email app.');
+        } else {
+          Alert.alert('Error', 'Unable to send email. Please contact us directly at alkawtharfoundationBC@gmail.com');
+        }
+      } catch (linkingError) {
+        Alert.alert('Error', 'Unable to send email. Please contact us directly at alkawtharfoundationBC@gmail.com');
+      }
     } finally {
       setIsLoading(false);
     }
