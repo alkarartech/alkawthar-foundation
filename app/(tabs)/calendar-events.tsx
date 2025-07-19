@@ -62,7 +62,9 @@ export default function CalendarEventsScreen() {
             body: `${event.title} starts in 30 minutes at ${event.location}`,
             data: { eventId: event.id },
           },
-          trigger: notificationTime,
+          trigger: {
+            date: notificationTime,
+          },
         });
         
         Alert.alert(
