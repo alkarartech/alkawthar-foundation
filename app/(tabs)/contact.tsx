@@ -41,7 +41,7 @@ const ContactScreen = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Image source={require('../assets/icon.png')} style={styles.logo} />
+      <Image source={require('@/assets/icon.png')} style={styles.logo} />
       <Text style={styles.header}>Contact Al Kawthar Foundation</Text>
       <Text style={styles.mission}>Spreading knowledge, unity, and community service across Vancouver and beyond.</Text>
 
