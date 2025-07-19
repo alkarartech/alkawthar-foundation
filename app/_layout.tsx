@@ -34,6 +34,16 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+    
+    // Load EmailJS for web
+    if (Platform.OS === 'web') {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+      script.onload = () => {
+        (window as any).emailjs.init('pr973Oj1-Zn5YBcz6');
+      };
+      document.head.appendChild(script);
+    }
   }, []);
 
   const GestureWrapper = Platform.OS === 'web' ? View : GestureHandlerRootView;

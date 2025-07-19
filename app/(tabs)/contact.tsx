@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert, Platform } from 'react-native';
 import AppHeader from '@/components/AppHeader';
 import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -20,40 +20,62 @@ const ContactScreen = () => {
     setIsLoading(true);
 
     try {
-      const emailData = {
-        service_id: 'service_rdevwae',
-        template_id: 'template_tph2uqc',
-        user_id: 'pr973Oj1-Zn5YBcz6',
-        template_params: {
-          title: title,
-          name: name,
-          message: message,
-          email: email,
+      if (Platform.OS === 'web') {
+        // For web, use EmailJS directly with the browser API
+        const emailjs = (window as any).emailjs;
+        if (emailjs) {
+          const result = await emailjs.send('service_rdevwae', 'template_tph2uqc', {
+            title: title,
+            name: name,
+            message: message,
+            email: email,
+          });
+          console.log('EmailJS result:', result);
+          Alert.alert('Success', 'Your message has been sent successfully!');
+          setTitle('');
+          setName('');
+          setEmail('');
+          setMessage('');
+        } else {
+          // Fallback: wait a bit for EmailJS to load and try again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const emailjsRetry = (window as any).emailjs;
+          if (emailjsRetry) {
+            await emailjsRetry.send('service_rdevwae', 'template_tph2uqc', {
+              title: title,
+              name: name,
+              message: message,
+              email: email,
+            });
+            Alert.alert('Success', 'Your message has been sent successfully!');
+            setTitle('');
+            setName('');
+            setEmail('');
+            setMessage('');
+          } else {
+            throw new Error('EmailJS not available');
+          }
         }
-      };
-
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      const result = await response.text();
-      
-      if (response.ok || response.status === 200) {
-        Alert.alert('Success', 'Your message has been sent successfully!');
-        setTitle('');
-        setName('');
-        setEmail('');
-        setMessage('');
       } else {
-        console.error('EmailJS response:', result);
-        throw new Error(`Failed to send email: ${result}`);
+        // For mobile, use a fallback email client
+        const subject = encodeURIComponent(`${title} - Message from ${name}`);
+        const body = encodeURIComponent(`From: ${name} (${email})\n\nMessage:\n${message}`);
+        const emailUrl = `mailto:alkawtharfoundationBC@gmail.com?subject=${subject}&body=${body}`;
+        
+        const canOpen = await Linking.canOpenURL(emailUrl);
+        if (canOpen) {
+          await Linking.openURL(emailUrl);
+          Alert.alert('Email Client Opened', 'Please send the email from your email app.');
+          setTitle('');
+          setName('');
+          setEmail('');
+          setMessage('');
+        } else {
+          throw new Error('Cannot open email client');
+        }
       }
     } catch (error) {
-      console.error('EmailJS error:', error);
+      console.error('Email send error:', error);
       Alert.alert('Error', 'Failed to send message. Please try again later.');
     } finally {
       setIsLoading(false);
