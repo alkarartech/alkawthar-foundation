@@ -8,8 +8,9 @@ import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
 import { useState, useEffect } from "react";
 import { init, toggleTimeFormat, updateTimeFormat, PrayerTimesData } from "@/hooks/prayerTimes";
-import { Calendar, Clock, MapPin, ChevronRight } from "lucide-react-native";
+import { Calendar, Clock, MapPin, ChevronRight, X } from "lucide-react-native";
 import WebViewWrapper from "@/components/WebViewWrapper";
+import useGoogleCalendarEvents from "@/hooks/useGoogleCalendarEvents";
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
@@ -23,6 +24,9 @@ export default function HomeScreen() {
   });
   const [is24Hour, setIs24Hour] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [nextPrayerCountdown, setNextPrayerCountdown] = useState('');
+  const { events: calendarEvents, loading: eventsLoading } = useGoogleCalendarEvents();
 
   useEffect(() => {
     async function fetchData() {
@@ -67,45 +71,90 @@ export default function HomeScreen() {
     if (!data.todayPrayerTimes?.times?.length) return null;
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const prayerTimes = data.todayPrayerTimes.times;
-    for (let i = 0; i < prayerTimes.length; i++) {
-      // Simple time comparison - in a real app this would be more sophisticated
-      const prayerTime = prayerTimes[i];
-      return {
-        name: prayerTime.label,
-        adhan: prayerTime.value,
-        iqamah: prayerTime.value, // Adjust if iqamah times are available separately
-      };
+    
+    // Filter to only show Fajr, Sunrise, Dhuhr, Maghrib
+    const relevantPrayers = data.todayPrayerTimes.times.filter(prayer => 
+      ['Fajr', 'Sunrise', 'Dhuhr', 'Maghrib'].includes(prayer.label)
+    );
+    
+    for (let i = 0; i < relevantPrayers.length; i++) {
+      const prayer = relevantPrayers[i];
+      try {
+        const [time, period] = prayer.value.split(' ');
+        const [hours, minutes] = time.split(':').map(Number);
+        let prayerMinutes = hours * 60 + minutes;
+        if (period === 'PM' && hours !== 12) prayerMinutes += 12 * 60;
+        if (period === 'AM' && hours === 12) prayerMinutes = minutes;
+        
+        if (prayerMinutes > currentMinutes) {
+          const minutesUntil = prayerMinutes - currentMinutes;
+          return {
+            name: prayer.label,
+            time: prayer.value,
+            minutesUntil
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing prayer time:', error);
+      }
     }
+    
+    // If no prayer found today, return first prayer of tomorrow
+    const firstPrayer = relevantPrayers[0];
+    if (firstPrayer) {
+      try {
+        const [time, period] = firstPrayer.value.split(' ');
+        const [hours, minutes] = time.split(':').map(Number);
+        let prayerMinutes = hours * 60 + minutes;
+        if (period === 'PM' && hours !== 12) prayerMinutes += 12 * 60;
+        if (period === 'AM' && hours === 12) prayerMinutes = minutes;
+        
+        const minutesUntil = (24 * 60) - currentMinutes + prayerMinutes;
+        return {
+          name: firstPrayer.label,
+          time: firstPrayer.value,
+          minutesUntil
+        };
+      } catch (error) {
+        console.error('Error parsing prayer time:', error);
+      }
+    }
+    
     return null;
   })();
+  
+  // Update countdown every minute
+  useEffect(() => {
+    const updateCountdown = () => {
+      if (nextPrayer) {
+        const hours = Math.floor(nextPrayer.minutesUntil / 60);
+        const minutes = nextPrayer.minutesUntil % 60;
+        if (hours > 0) {
+          setNextPrayerCountdown(`in ${hours}h ${minutes}m`);
+        } else {
+          setNextPrayerCountdown(`in ${minutes}m`);
+        }
+      }
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [nextPrayer]);
 
-  const upcomingEvents = [
-    {
-      id: '1',
-      title: 'Friday Prayer & Sermon',
-      date: '15',
-      month: 'Jul',
-      time: '1:00 PM',
-      location: 'Main Prayer Hall',
-    },
-    {
-      id: '2',
-      title: 'Islamic Studies Class',
-      date: '16',
-      month: 'Jul',
-      time: '7:00 PM',
-      location: 'Education Room',
-    },
-    {
-      id: '3',
-      title: 'Community Iftar',
-      date: '20',
-      month: 'Jul',
-      time: '8:00 PM',
-      location: 'Community Hall',
-    },
-  ];
+  // Get next 3 upcoming events from Google Calendar
+  const upcomingEvents = calendarEvents.slice(0, 3).map(event => {
+    const [day, month] = event.date.split(' ');
+    return {
+      id: event.id,
+      title: event.title,
+      date: day,
+      month: month,
+      time: event.time,
+      location: event.location,
+    };
+  });
 
   const handleDonate = () => {
     setShowDonationModal(true);
@@ -131,7 +180,7 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Prayer Times</Text>
+            <Text style={styles.sectionTitle}>Prayer Times</Text>
             <TouchableOpacity 
               style={styles.viewAllButton}
               onPress={() => router.push("/prayer-times")}
@@ -141,18 +190,24 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <Card style={styles.prayerCard}>
-            <View style={styles.prayerTimesGrid}>
-              {data.todayPrayerTimes?.times?.filter(prayer => 
-                ['Fajr', 'Sunrise', 'Dhuhr', 'Sunset', 'Maghrib'].includes(prayer.label)
-              ).map((prayer, index) => (
-                <View key={index} style={styles.prayerTimeItem}>
-                  <Text style={styles.prayerName}>{prayer.label}</Text>
-                  <Text style={styles.prayerTime}>{prayer.value}</Text>
+          <TouchableOpacity 
+            style={styles.nextPrayerCard}
+            onPress={() => setShowPrayerModal(true)}
+          >
+            {nextPrayer ? (
+              <>
+                <View style={styles.nextPrayerHeader}>
+                  <Text style={styles.nextPrayerLabel}>Next Prayer</Text>
+                  <Clock size={20} color={Colors.primary.green} />
                 </View>
-              ))}
-            </View>
-          </Card>
+                <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
+                <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
+                <Text style={styles.nextPrayerCountdown}>{nextPrayerCountdown}</Text>
+              </>
+            ) : (
+              <Text style={styles.nextPrayerName}>Prayer times loading...</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.donateSection}>
@@ -170,15 +225,16 @@ export default function HomeScreen() {
               style={styles.thermometer}
             />
           </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.missionTitle}>Our Mission</Text>
-          <Text style={styles.missionText}>
-            Al Kawthar Foundation is dedicated to fostering a vibrant Muslim community in Surrey, BC,
-            through spiritual growth, education, and community engagement, guided by Islamic values of
-            compassion and unity.
-          </Text>
+          
+          {/* Mission Statement - moved closer to donation */}
+          <View style={styles.missionContainer}>
+            <Text style={styles.missionTitle}>Our Mission</Text>
+            <Text style={styles.missionText}>
+              Al Kawthar Foundation is dedicated to fostering a vibrant Muslim community in Surrey, BC,
+              through spiritual growth, education, and community engagement, guided by Islamic values of
+              compassion and unity.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -193,34 +249,44 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.eventsContainer}>
-            {upcomingEvents.map((event) => (
-              <TouchableOpacity 
-                key={event.id} 
-                style={styles.eventItem}
-                onPress={() => router.push(`/event/${event.id}`)}
-              >
-                <View style={styles.eventDate}>
-                  <Text style={styles.eventDay}>{event.date}</Text>
-                  <Text style={styles.eventMonth}>{event.month}</Text>
-                </View>
-                <View style={styles.eventDetails}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <View style={styles.eventMeta}>
-                    <View style={styles.eventMetaItem}>
-                      <Clock size={14} color={Colors.text.muted} />
-                      <Text style={styles.eventMetaText}>{event.time}</Text>
-                    </View>
-                    <View style={styles.eventMetaItem}>
-                      <MapPin size={14} color={Colors.text.muted} />
-                      <Text style={styles.eventMetaText}>{event.location}</Text>
+          {eventsLoading ? (
+            <Card style={styles.loadingCard}>
+              <Text style={styles.loadingText}>Loading events...</Text>
+            </Card>
+          ) : upcomingEvents.length > 0 ? (
+            <View style={styles.eventsContainer}>
+              {upcomingEvents.map((event) => (
+                <TouchableOpacity 
+                  key={event.id} 
+                  style={styles.eventItem}
+                  onPress={() => router.push(`/event/${event.id}`)}
+                >
+                  <View style={styles.eventDate}>
+                    <Text style={styles.eventDay}>{event.date}</Text>
+                    <Text style={styles.eventMonth}>{event.month}</Text>
+                  </View>
+                  <View style={styles.eventDetails}>
+                    <Text style={styles.eventTitle}>{event.title}</Text>
+                    <View style={styles.eventMeta}>
+                      <View style={styles.eventMetaItem}>
+                        <Clock size={14} color={Colors.text.muted} />
+                        <Text style={styles.eventMetaText}>{event.time}</Text>
+                      </View>
+                      <View style={styles.eventMetaItem}>
+                        <MapPin size={14} color={Colors.text.muted} />
+                        <Text style={styles.eventMetaText}>{event.location}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-                <ChevronRight size={20} color={Colors.text.muted} />
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <ChevronRight size={20} color={Colors.text.muted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Card style={styles.noEventsCard}>
+              <Text style={styles.noEventsText}>No upcoming events</Text>
+            </Card>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -261,6 +327,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      {/* Donation Modal */}
       <Modal
         animationType="slide"
         transparent={false}
@@ -269,11 +336,12 @@ export default function HomeScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Donate</Text>
             <TouchableOpacity
               onPress={() => setShowDonationModal(false)}
               style={styles.closeButton}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <X size={24} color={Colors.text.dark} />
             </TouchableOpacity>
           </View>
           <WebViewWrapper
@@ -281,6 +349,65 @@ export default function HomeScreen() {
             style={styles.webview}
           />
         </SafeAreaView>
+      </Modal>
+      
+      {/* Prayer Times Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showPrayerModal}
+        onRequestClose={() => setShowPrayerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.prayerModalContainer}>
+            <View style={styles.prayerModalHeader}>
+              <Text style={styles.prayerModalTitle}>Today's Prayer Times</Text>
+              <TouchableOpacity
+                onPress={() => setShowPrayerModal(false)}
+                style={styles.prayerCloseButton}
+              >
+                <X size={24} color={Colors.text.dark} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.prayerModalContent}>
+              {data.todayPrayerTimes?.times?.filter(prayer => 
+                ['Fajr', 'Sunrise', 'Dhuhr', 'Maghrib'].includes(prayer.label)
+              ).map((prayer, index) => (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.prayerModalItem,
+                    nextPrayer?.name === prayer.label && styles.prayerModalItemActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.prayerModalName,
+                    nextPrayer?.name === prayer.label && styles.prayerModalNameActive
+                  ]}>
+                    {prayer.label}
+                  </Text>
+                  <Text style={[
+                    styles.prayerModalTime,
+                    nextPrayer?.name === prayer.label && styles.prayerModalTimeActive
+                  ]}>
+                    {prayer.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.viewFullTimesButton}
+              onPress={() => {
+                setShowPrayerModal(false);
+                router.push('/prayer-times');
+              }}
+            >
+              <Text style={styles.viewFullTimesText}>View Full Prayer Times</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -301,6 +428,10 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 8,
     overflow: "hidden",
+  },
+  missionContainer: {
+    marginTop: 12,
+    paddingHorizontal: 8,
   },
   thermometer: {
     flex: 1,
@@ -327,15 +458,15 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   missionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "600",
     color: Colors.primary.green,
     marginBottom: 8,
     textAlign: "center",
   },
   missionText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
     color: Colors.text.dark,
     textAlign: "center",
   },
@@ -360,39 +491,46 @@ const styles = StyleSheet.create({
     color: Colors.primary.green,
     fontWeight: "500",
   },
-  prayerCard: {
+  nextPrayerCard: {
     backgroundColor: Colors.background.light,
     borderWidth: 1,
     borderColor: Colors.ui.border,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  prayerTimesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 7,
+  nextPrayerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
   },
-  prayerTimeItem: {
-    alignItems: "center",
-    backgroundColor: Colors.primary.green,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    minWidth: "18%",
-    flex: 1,
-    maxWidth: "19%",
-  },
-  prayerName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.text.light,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  prayerTime: {
+  nextPrayerLabel: {
     fontSize: 14,
-    fontWeight: "700",
-    color: Colors.text.light,
-    textAlign: "center",
+    color: Colors.text.muted,
+    fontWeight: '500',
+  },
+  nextPrayerName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary.green,
+    marginBottom: 4,
+  },
+  nextPrayerTime: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.text.dark,
+    marginBottom: 8,
+  },
+  nextPrayerCountdown: {
+    fontSize: 16,
+    color: Colors.text.muted,
+    fontWeight: '500',
   },
   eventsContainer: {
     gap: 12,
@@ -494,18 +632,113 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.light,
   },
   modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
     backgroundColor: Colors.background.offWhite,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.text.muted,
+    borderBottomColor: Colors.ui.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.dark,
   },
   closeButton: {
-    alignSelf: "flex-end",
+    padding: 4,
   },
-  closeButtonText: {
+  loadingCard: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
     fontSize: 16,
-    color: Colors.primary.green,
-    fontWeight: "600",
+    color: Colors.text.muted,
+  },
+  noEventsCard: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noEventsText: {
+    fontSize: 16,
+    color: Colors.text.muted,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  prayerModalContainer: {
+    backgroundColor: Colors.background.light,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  prayerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.ui.border,
+  },
+  prayerModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.dark,
+  },
+  prayerCloseButton: {
+    padding: 4,
+  },
+  prayerModalContent: {
+    padding: 20,
+  },
+  prayerModalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: Colors.background.offWhite,
+    borderRadius: 12,
+  },
+  prayerModalItemActive: {
+    backgroundColor: Colors.primary.green,
+  },
+  prayerModalName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.dark,
+  },
+  prayerModalNameActive: {
+    color: Colors.text.light,
+  },
+  prayerModalTime: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.dark,
+  },
+  prayerModalTimeActive: {
+    color: Colors.text.light,
+  },
+  viewFullTimesButton: {
+    margin: 20,
+    marginTop: 0,
+    backgroundColor: Colors.primary.green,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewFullTimesText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.light,
   },
   webview: {
     flex: 1,
