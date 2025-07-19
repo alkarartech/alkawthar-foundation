@@ -1,158 +1,185 @@
-// contact.tsx - Updated with organization branding, social links, feedback form, and developer credit
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert } from 'react-native';
+import { WebView } from 'react-native-webview';
+import emailjs from '@emailjs/browser'; // Use emailjs to send email from within app
 
-import { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Linking,
-  Platform,
-  Image,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Header from "@/components/Header";
-import AppHeader from "@/components/AppHeader";
+const ContactScreen = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
 
-const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const isDesktop = isWeb && width >= 768;
-import Card from "@/components/Card";
-import Input from "@/components/Input";
-import Button from "@/components/Button";
-import Colors from "@/constants/colors";
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube } from "lucide-react-native";
-import useContact, { ContactFormData } from "@/hooks/useContact";
-import WebViewWrapper from "@/components/WebViewWrapper";
+  const handleEmailSend = async () => {
+    if (!name || !email || !message) {
+      Alert.alert('Error', 'Please fill out all fields.');
+      return;
+    }
 
-export default function ContactScreen() {
-  const { loading, error, success, submitContactForm } = useContact();
+    const serviceID = 'service_rdevwae';
+    const templateID = 'template_tph2uqc';
+    const publicKey = 'pr973Oj1-Zn5YBcz6';
 
-  const [formData, setFormData] = useState<ContactFormData>({
-    name: '',
-    email: '',
-    message: '',
-  });
-
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
-
-  const handleChange = (field: keyof ContactFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    try {
+      await emailjs.send(
+        serviceID,
+        templateID,
+        {
+          from_name: name,
+          from_email: email,
+          message,
+        },
+        publicKey
+      );
+      Alert.alert('Success', 'Email sent successfully!');
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send email. Please try again later.');
+      console.error('Email send error:', error);
     }
   };
-
-  const validateForm = () => {
-    const errors: Partial<Record<keyof ContactFormData, string>> = {};
-    if (!formData.name) errors.name = 'Please enter your name';
-    if (!formData.email) errors.email = 'Please enter your email';
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email';
-    }
-    if (!formData.message) errors.message = 'Please enter a message';
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = () => {
-    if (validateForm()) {
-      // Send to alternate email
-      const subject = encodeURIComponent("Message from Al Kawthar Foundation App");
-      const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\nMessage: ${formData.message}`);
-      const mailto = `mailto:alkawtharfoundationBC@gmail.com?subject=${subject}&body=${body}`;
-      Linking.openURL(mailto);
-    }
-  };
-
-  const openURL = (url: string) => Linking.openURL(url);
 
   return (
-    <SafeAreaView style={styles.container} edges={isDesktop ? [] : ["top"]}>
-      {!isDesktop && <AppHeader />}
-      {!isDesktop && <Header title="Contact Us" />}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
+      <Text style={styles.header}>Contact Al Kawthar Foundation</Text>
+      <Text style={styles.mission}>Spreading knowledge, unity, and community service across Vancouver and beyond.</Text>
 
-        {/* Logo and About Section */}
-        <View style={styles.logoContainer}>
-          <Image source={require("@/assets/images/icon.png")} style={styles.logo} />
-          <Text style={styles.aboutText}>
-            Al Kawthar Foundation is a Shia Islamic non-profit based in Surrey, BC. We provide religious, educational,
-            and social services to the Muslim community including prayer, Nikah, burial, and Hajj/Umrah services.
-          </Text>
-        </View>
+      <View style={styles.socialContainer}>
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=100083609100746')}>
+          <Image source={require('../assets/facebook.png')} style={styles.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/alkawtharfoundation/')}>
+          <Image source={require('../assets/instagram.png')} style={styles.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openURL('mailto:alkawtharfoundationBC@gmail.com')}>
+          <Image source={require('../assets/email.png')} style={styles.icon} />
+        </TouchableOpacity>
+      </View>
 
-        {/* Contact and Social Links */}
-        <Card style={styles.contactCard}>
-          <Text style={styles.contactTitle}>Contact Information</Text>
+      <View style={styles.infoContainer}>
+        <Text style={styles.contactText}>📞 Contact Board: +1 (778) 223-0111</Text>
+        <Text style={styles.contactText}>📧 Email: alkawtharfoundationBC@gmail.com</Text>
+      </View>
 
-          <View style={styles.contactItem}>
-            <MapPin size={20} color={Colors.primary.green} />
-            <Text style={styles.contactText}>6655 154 St, Surrey, BC V3S 7C6</Text>
-          </View>
+      <Text style={styles.formHeader}>Send Us a Message</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Your Name"
+        value={name}
+        onChangeText={setName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Your Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+      />
+      <TextInput
+        style={[styles.input, { height: 100 }]}
+        placeholder="Your Message"
+        value={message}
+        onChangeText={setMessage}
+        multiline
+      />
+      <TouchableOpacity style={styles.sendButton} onPress={handleEmailSend}>
+        <Text style={styles.sendText}>Send Message</Text>
+      </TouchableOpacity>
 
-          <View style={styles.contactItem}>
-            <Phone size={20} color={Colors.primary.green} />
-            <Text style={[styles.contactText, styles.contactLink]} onPress={() => Linking.openURL("tel:+16043746706")}>Malik Ibrahim (604) 374-6706</Text>
-          </View>
+      <Text style={styles.formHeader}>Google Feedback Form</Text>
+      <View style={{ height: 400, width: '100%', marginVertical: 10 }}>
+        <WebView source={{ uri: 'https://docs.google.com/forms/d/e/1FAIpQLSd23ZB7AvmvfhuYSwk8p3iNGRkgaFehXYE-K7L83ZYzjLK6bg/viewform?usp=sf_link' }} />
+      </View>
 
-          <View style={styles.contactItem}>
-            <Mail size={20} color={Colors.primary.green} />
-            <Text style={[styles.contactText, styles.contactLink]} onPress={() => Linking.openURL("mailto:alkawtharfoundation015@gmail.com")}>alkawtharfoundation015@gmail.com</Text>
-          </View>
-
-          <View style={styles.socialIcons}>
-            <Facebook size={24} color={Colors.primary.green} onPress={() => openURL("https://www.facebook.com/alkawtharfoundation.van/")} />
-            <Instagram size={24} color={Colors.primary.green} onPress={() => openURL("https://www.instagram.com/alkawtharfoundation/?hl=en")} />
-            <Youtube size={24} color={Colors.primary.green} onPress={() => openURL("https://www.youtube.com/@AlKawtharIslamicAssociation")} />
-          </View>
-        </Card>
-
-        {/* Message Form */}
-        <Card style={styles.formCard}>
-          <Text style={styles.formTitle}>Send Us a Message</Text>
-          <Input label="Name" value={formData.name} onChangeText={value => handleChange("name", value)} error={formErrors.name} />
-          <Input label="Email" value={formData.email} keyboardType="email-address" autoCapitalize="none" onChangeText={value => handleChange("email", value)} error={formErrors.email} />
-          <Input label="Message" value={formData.message} onChangeText={value => handleChange("message", value)} multiline numberOfLines={6} textAlignVertical="top" style={styles.textArea} error={formErrors.message} />
-          {error && <Text style={styles.errorText}>{error}</Text>}
-          <Button title="Send Message" onPress={handleSubmit} loading={loading} style={styles.submitButton} />
-        </Card>
-
-        {/* Feedback Form (WebView) */}
-        <Card style={{ height: 400, marginBottom: 16 }}>
-          <Text style={styles.formTitle}>Feedback Form</Text>
-          <WebViewWrapper source={{ uri: 'https://forms.gle/YSA8ZtFu4ioNB4Ri9' }} style={{ flex: 1 }} />
-        </Card>
-
-        {/* Developer Credit */}
-        <Card style={{ alignItems: 'center', paddingVertical: 16 }}>
-          <Image source={require("@/assets/images/alkarartech.png")} style={{ height: 40, width: 160, resizeMode: 'contain', marginBottom: 8 }} />
-          <Text style={styles.devText} onPress={() => openURL("https://alkarartech.com")}>Developed by Alkarar Tech</Text>
-        </Card>
-      </ScrollView>
-    </SafeAreaView>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Powered by</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('https://alkarartech.com')}>
+          <Image source={require('../assets/alkarartech.png')} style={styles.footerLogo} />
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background.light },
-  scrollView: { flex: 1 },
-  content: { padding: 16, paddingBottom: 32 },
-  logoContainer: { alignItems: 'center', marginBottom: 16 },
-  logo: { height: 80, width: 80, resizeMode: 'contain', marginBottom: 8 },
-  aboutText: { fontSize: 14, textAlign: 'center', color: Colors.text.dark },
-  contactCard: { marginBottom: 16 },
-  contactTitle: { fontSize: 18, fontWeight: '600', color: Colors.text.dark, marginBottom: 16 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  contactText: { fontSize: 16, color: Colors.text.dark, marginLeft: 12 },
-  contactLink: { textDecorationLine: 'underline', color: Colors.primary.green },
-  socialIcons: { flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 12 },
-  formCard: { marginBottom: 16 },
-  formTitle: { fontSize: 18, fontWeight: '600', color: Colors.text.dark, marginBottom: 12 },
-  textArea: { height: 120, textAlignVertical: 'top' },
-  errorText: { color: Colors.ui.error, textAlign: 'center', marginTop: 8 },
-  submitButton: { marginTop: 16 },
-  devText: { color: Colors.primary.green, fontSize: 14, textDecorationLine: 'underline' },
+  container: {
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 5,
+  },
+  mission: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  icon: {
+    width: 30,
+    height: 30,
+    marginHorizontal: 10,
+  },
+  infoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  contactText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  formHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  sendButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sendText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  footerText: {
+    fontSize: 14,
+  },
+  footerLogo: {
+    width: 100,
+    height: 40,
+    resizeMode: 'contain',
+    marginTop: 5,
+  },
 });
+
+export default ContactScreen;
