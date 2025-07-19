@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert, Platform } from 'react-native';
-import { WebView } from 'react-native-webview';
-import Header from '@/components/Header';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert } from 'react-native';
+import AppHeader from '@/components/AppHeader';
+import { Facebook, Instagram, Youtube, Phone, Mail, MapPin } from 'lucide-react-native';
+import Colors from '@/constants/colors';
 
 const ContactScreen = () => {
   const [title, setTitle] = useState('');
@@ -9,7 +10,6 @@ const ContactScreen = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const webViewRef = useRef<WebView>(null);
 
   const handleEmailSend = async () => {
     if (!title || !name || !email || !message) {
@@ -20,100 +20,89 @@ const ContactScreen = () => {
     setIsLoading(true);
 
     try {
-      // Create the EmailJS HTML content with proper escaping
-      const escapedTitle = title.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-      const escapedName = name.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-      const escapedEmail = email.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-      const escapedMessage = message.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service_id: 'service_rdevwae',
+          template_id: 'template_tph2uqc',
+          user_id: 'pr973Oj1-Zn5YBcz6',
+          template_params: {
+            title: title,
+            name: name,
+            message: message,
+            email: email,
+          }
+        }),
+      });
 
-      const emailJSHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-        </head>
-        <body>
-          <script type="text/javascript">
-            (function(){
-              emailjs.init({
-                publicKey: "pr973Oj1-Zn5YBcz6",
-              });
-            })();
-
-            emailjs.send("service_rdevwae","template_tph2uqc",{
-              title: "${escapedTitle}",
-              name: "${escapedName}",
-              message: "${escapedMessage}",
-              email: "${escapedEmail}",
-            }).then(function(response) {
-              if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({success: true}));
-              }
-            }, function(error) {
-              if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({success: false, error: error}));
-              }
-            });
-          </script>
-        </body>
-        </html>
-      `;
-
-      if (webViewRef.current) {
-        webViewRef.current.injectJavaScript(`
-          document.open();
-          document.write(\`${emailJSHTML.replace(/`/g, '\\`')}\`);
-          document.close();
-        `);
-      }
-    } catch (error) {
-      console.error('EmailJS error:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again.');
-      setIsLoading(false);
-    }
-  };
-
-  const handleWebViewMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.success) {
+      if (response.ok) {
         Alert.alert('Success', 'Your message has been sent successfully!');
         setTitle('');
         setName('');
         setEmail('');
         setMessage('');
       } else {
-        Alert.alert('Error', 'Failed to send message. Please try again.');
+        throw new Error('Failed to send email');
       }
     } catch (error) {
+      console.error('EmailJS error:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
+
+
 
   return (
     <View style={styles.container}>
-      <Header title="Contact Us" />
+      <AppHeader />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         <Text style={styles.header}>Contact Al Kawthar Foundation</Text>
         <Text style={styles.mission}>Spreading knowledge, unity, and community service across Vancouver and beyond.</Text>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=100083609100746')} style={styles.socialButton}>
-            <Text style={styles.socialText}>📘 Facebook</Text>
+            <Facebook size={20} color={Colors.primary.green} />
+            <Text style={styles.socialText}>Facebook</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/alkawtharfoundation/')} style={styles.socialButton}>
-            <Text style={styles.socialText}>📷 Instagram</Text>
+            <Instagram size={20} color={Colors.primary.green} />
+            <Text style={styles.socialText}>Instagram</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:alkawtharfoundationBC@gmail.com')} style={styles.socialButton}>
-            <Text style={styles.socialText}>✉️ Email</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.youtube.com/@AlKawtharIslamicAssociation/featured')} style={styles.socialButton}>
+            <Youtube size={20} color={Colors.primary.green} />
+            <Text style={styles.socialText}>YouTube</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.infoContainer}>
-          <Text style={styles.contactText}>📞 Contact Board: +1 (778) 223-0111</Text>
-          <Text style={styles.contactText}>📧 Email: alkawtharfoundationBC@gmail.com</Text>
+          <TouchableOpacity 
+            onPress={() => Linking.openURL('tel:+16045904115')} 
+            style={styles.contactItem}
+          >
+            <Phone size={18} color={Colors.primary.green} />
+            <Text style={styles.contactText}>+1 604-590-4115</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={() => Linking.openURL('mailto:alkawtharfoundationBC@gmail.com')} 
+            style={styles.contactItem}
+          >
+            <Mail size={18} color={Colors.primary.green} />
+            <Text style={styles.contactText}>alkawtharfoundationBC@gmail.com</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={() => Linking.openURL('https://maps.google.com/?q=6655+154+St,+Surrey,+BC+V3S+7C6,+Canada')} 
+            style={styles.contactItem}
+          >
+            <MapPin size={18} color={Colors.primary.green} />
+            <Text style={styles.contactText}>6655 154 St, Surrey, BC V3S 7C6, Canada</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.formHeader}>Send Us a Message</Text>
@@ -153,20 +142,7 @@ const ContactScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.formHeader}>Google Feedback Form</Text>
-        <WebView
-          ref={webViewRef}
-          style={{ height: 0, width: 0 }}
-          onMessage={handleWebViewMessage}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          source={{ html: '<html><body></body></html>' }}
-        />
 
-        <Text style={styles.formHeader}>Google Feedback Form</Text>
-        <View style={{ height: 400, width: '100%', marginVertical: 10 }}>
-          <WebView source={{ uri: 'https://docs.google.com/forms/d/e/1FAIpQLSd23ZB7AvmvfhuYSwk8p3iNGRkgaFehXYE-K7L83ZYzjLK6bg/viewform?usp=sf_link' }} />
-        </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Powered by</Text>
@@ -182,87 +158,118 @@ const ContactScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background.light,
   },
   scrollContainer: {
     padding: 20,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    marginBottom: 10,
-  },
   header: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginVertical: 5,
+    marginVertical: 10,
+    color: Colors.primary.green,
   },
   mission: {
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
+    color: Colors.text.muted,
+    lineHeight: 22,
   },
   socialContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 10,
-    gap: 10,
+    marginVertical: 20,
+    gap: 15,
   },
   socialButton: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 5,
+    backgroundColor: Colors.background.white,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   socialText: {
     fontSize: 14,
     fontWeight: '600',
+    color: Colors.text.primary,
   },
   infoContainer: {
+    marginBottom: 30,
+    gap: 15,
+  },
+  contactItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: Colors.background.white,
+    padding: 15,
+    borderRadius: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   contactText: {
     fontSize: 16,
-    marginBottom: 5,
+    color: Colors.text.primary,
+    flex: 1,
   },
   formHeader: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginTop: 10,
-    marginBottom: 10,
+    marginBottom: 15,
+    color: Colors.primary.green,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
+    borderColor: Colors.ui.border,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    backgroundColor: Colors.background.white,
+    fontSize: 16,
   },
   sendButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.primary.green,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: Colors.text.muted,
   },
   sendText: {
-    color: '#fff',
+    color: Colors.background.white,
     fontWeight: 'bold',
+    fontSize: 16,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.ui.border,
   },
   footerText: {
     fontSize: 14,
+    color: Colors.text.muted,
   },
   footerLogo: {
     width: 100,
