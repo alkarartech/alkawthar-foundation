@@ -65,13 +65,14 @@ export default function PrayerTimesScreen() {
   const generatePrayerTimesForDate = (date: Date) => {
     // This is a simplified calculation - in a real app you'd use the proper prayer time calculation
     const baseHour = 5; // Starting with Fajr at 5 AM
+    const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    const seasonalAdjustment = Math.sin((dayOfYear / 365) * 2 * Math.PI) * 0.5; // Seasonal variation
+    
     return {
-      fajr: formatTime(baseHour + Math.random() * 0.5),
-      sunrise: formatTime(baseHour + 1.5 + Math.random() * 0.5),
-      dhuhr: formatTime(12 + Math.random() * 0.5),
-      asr: formatTime(15 + Math.random() * 0.5),
-      maghrib: formatTime(18 + Math.random() * 0.5),
-      isha: formatTime(20 + Math.random() * 0.5),
+      fajr: formatTime(baseHour + seasonalAdjustment + Math.random() * 0.3),
+      sunrise: formatTime(baseHour + 1.5 + seasonalAdjustment + Math.random() * 0.3),
+      dhuhr: formatTime(12 + Math.random() * 0.2),
+      maghrib: formatTime(18 + seasonalAdjustment + Math.random() * 0.3),
     };
   };
 
@@ -169,18 +170,17 @@ export default function PrayerTimesScreen() {
         )}
 
         {/* Monthly Prayer Times Table */}
-        <Card style={styles.monthlyCard}>
+        <View style={styles.monthlyContainer}>
           <Text style={styles.cardTitle}>Monthly Prayer Times</Text>
+          <Text style={styles.cardSubtitle}>Surrey, BC - {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
           
           {/* Table Header */}
           <View style={styles.tableHeader}>
-            <Text style={styles.headerCell}>Date</Text>
+            <Text style={styles.headerCellDate}>Date</Text>
             <Text style={styles.headerCell}>Fajr</Text>
             <Text style={styles.headerCell}>Sunrise</Text>
             <Text style={styles.headerCell}>Dhuhr</Text>
-            <Text style={styles.headerCell}>Asr</Text>
             <Text style={styles.headerCell}>Maghrib</Text>
-            <Text style={styles.headerCell}>Isha</Text>
           </View>
           
           {/* Table Rows */}
@@ -193,7 +193,7 @@ export default function PrayerTimesScreen() {
                   day.isToday && styles.todayRow
                 ]}
               >
-                <View style={styles.dateCell}>
+                <View style={styles.dateCellContainer}>
                   <Text style={[styles.dateNumber, day.isToday && styles.todayText]}>
                     {day.date}
                   </Text>
@@ -204,13 +204,11 @@ export default function PrayerTimesScreen() {
                 <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.fajr}</Text>
                 <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.sunrise}</Text>
                 <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.dhuhr}</Text>
-                <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.asr}</Text>
                 <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.maghrib}</Text>
-                <Text style={[styles.timeCell, day.isToday && styles.todayText]}>{day.isha}</Text>
               </View>
             ))}
           </ScrollView>
-        </Card>
+        </View>
 
         <Card style={styles.qiblaCard}>
           <View style={styles.qiblaHeader}>
@@ -254,16 +252,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 12,
     paddingBottom: 32,
+    paddingTop: 16,
   },
   header: {
     alignItems: 'center',
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: Colors.primary.green,
     marginBottom: 4,
   },
@@ -311,62 +310,99 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text.dark,
   },
-  monthlyCard: {
+  monthlyContainer: {
     marginBottom: 16,
+    marginHorizontal: -12,
+    backgroundColor: Colors.background.offWhite,
+    borderRadius: 0,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      default: {},
+    }),
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: Colors.text.muted,
+    textAlign: 'center',
+    marginBottom: 20,
+    marginTop: -8,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: Colors.primary.green,
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  headerCellDate: {
+    flex: 1.2,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.text.light,
+    textAlign: 'center',
   },
   headerCell: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: Colors.text.light,
     textAlign: 'center',
   },
   tableContainer: {
-    maxHeight: 400,
+    maxHeight: 500,
+    backgroundColor: Colors.background.light,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.ui.border,
     alignItems: 'center',
+    minHeight: 60,
   },
   todayRow: {
-    backgroundColor: Colors.primary.lightGreen + '20',
-    borderRadius: 8,
-    marginVertical: 2,
-    borderBottomWidth: 0,
+    backgroundColor: Colors.primary.green + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary.green,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.primary.green + '30',
   },
-  dateCell: {
-    flex: 1,
+  dateCellContainer: {
+    flex: 1.2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   dateNumber: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.text.dark,
   },
   dayName: {
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.text.muted,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
   timeCell: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.text.dark,
     textAlign: 'center',
+    fontWeight: '500',
   },
   todayText: {
     color: Colors.primary.green,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   dateCard: {
     marginBottom: 16,
@@ -393,11 +429,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: Colors.text.dark,
-    marginBottom: 16,
+    marginBottom: 8,
     textAlign: 'center',
+    paddingTop: 24,
+    paddingHorizontal: 16,
   },
   prayerList: {
     gap: 12,
