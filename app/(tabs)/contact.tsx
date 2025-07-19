@@ -57,21 +57,37 @@ const ContactScreen = () => {
           }
         }
       } else {
-        // For mobile, use a fallback email client
-        const subject = encodeURIComponent(`${title} - Message from ${name}`);
-        const body = encodeURIComponent(`From: ${name} (${email})\n\nMessage:\n${message}`);
-        const emailUrl = `mailto:alkawtharfoundationBC@gmail.com?subject=${subject}&body=${body}`;
-        
-        const canOpen = await Linking.canOpenURL(emailUrl);
-        if (canOpen) {
-          await Linking.openURL(emailUrl);
-          Alert.alert('Email Client Opened', 'Please send the email from your email app.');
+        // For mobile, use a backend service to send emails
+        const response = await fetch('https://toolkit.rork.com/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: 'alkawtharfoundationBC@gmail.com',
+            subject: `${title} - Message from ${name}`,
+            html: `
+              <h3>New Contact Form Submission</h3>
+              <p><strong>Subject:</strong> ${title}</p>
+              <p><strong>From:</strong> ${name}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Message:</strong></p>
+              <p>${message.replace(/\n/g, '<br>')}</p>
+            `,
+            text: `New Contact Form Submission\n\nSubject: ${title}\nFrom: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
+          }),
+        });
+
+        if (response.ok) {
+          Alert.alert('Success', 'Your message has been sent successfully!');
           setTitle('');
           setName('');
           setEmail('');
           setMessage('');
         } else {
-          throw new Error('Cannot open email client');
+          const errorData = await response.text();
+          console.error('Email send error:', errorData);
+          throw new Error('Failed to send email');
         }
       }
     } catch (error) {
