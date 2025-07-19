@@ -20,36 +20,41 @@ const ContactScreen = () => {
     setIsLoading(true);
 
     try {
+      const emailData = {
+        service_id: 'service_rdevwae',
+        template_id: 'template_tph2uqc',
+        user_id: 'pr973Oj1-Zn5YBcz6',
+        template_params: {
+          title: title,
+          name: name,
+          message: message,
+          email: email,
+        }
+      };
+
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          service_id: 'service_rdevwae',
-          template_id: 'template_tph2uqc',
-          user_id: 'pr973Oj1-Zn5YBcz6',
-          template_params: {
-            title: title,
-            name: name,
-            message: message,
-            email: email,
-          }
-        }),
+        body: JSON.stringify(emailData),
       });
 
-      if (response.ok) {
+      const result = await response.text();
+      
+      if (response.ok || response.status === 200) {
         Alert.alert('Success', 'Your message has been sent successfully!');
         setTitle('');
         setName('');
         setEmail('');
         setMessage('');
       } else {
-        throw new Error('Failed to send email');
+        console.error('EmailJS response:', result);
+        throw new Error(`Failed to send email: ${result}`);
       }
     } catch (error) {
       console.error('EmailJS error:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+      Alert.alert('Error', 'Failed to send message. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -61,21 +66,19 @@ const ContactScreen = () => {
     <View style={styles.container}>
       <AppHeader />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         <Text style={styles.header}>Contact Al Kawthar Foundation</Text>
         <Text style={styles.mission}>Spreading knowledge, unity, and community service across Vancouver and beyond.</Text>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=100083609100746')} style={styles.socialButton}>
-            <Facebook size={20} color={Colors.primary.green} />
-            <Text style={styles.socialText}>Facebook</Text>
+            <Facebook size={24} color={Colors.primary.green} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/alkawtharfoundation/')} style={styles.socialButton}>
-            <Instagram size={20} color={Colors.primary.green} />
-            <Text style={styles.socialText}>Instagram</Text>
+            <Instagram size={24} color={Colors.primary.green} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Linking.openURL('https://www.youtube.com/@AlKawtharIslamicAssociation/featured')} style={styles.socialButton}>
-            <Youtube size={20} color={Colors.primary.green} />
-            <Text style={styles.socialText}>YouTube</Text>
+            <Youtube size={24} color={Colors.primary.green} />
           </TouchableOpacity>
         </View>
 
@@ -163,6 +166,13 @@ const styles = StyleSheet.create({
   scrollContainer: {
     padding: 20,
   },
+  logo: {
+    width: 80,
+    height: 80,
+    alignSelf: 'center',
+    marginBottom: 20,
+    resizeMode: 'contain',
+  },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -184,24 +194,19 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   socialButton: {
-    backgroundColor: Colors.background.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: Colors.background.light,
+    width: 50,
+    height: 50,
     borderRadius: 25,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  socialText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.primary,
-  },
+
   infoContainer: {
     marginBottom: 30,
     gap: 15,
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.background.white,
+    backgroundColor: Colors.background.light,
     padding: 15,
     borderRadius: 12,
     gap: 12,
@@ -221,7 +226,7 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 16,
-    color: Colors.text.primary,
+    color: Colors.text.dark,
     flex: 1,
   },
   formHeader: {
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
-    backgroundColor: Colors.background.white,
+    backgroundColor: Colors.background.light,
     fontSize: 16,
   },
   sendButton: {
@@ -256,7 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.text.muted,
   },
   sendText: {
-    color: Colors.background.white,
+    color: Colors.text.light,
     fontWeight: 'bold',
     fontSize: 16,
   },
