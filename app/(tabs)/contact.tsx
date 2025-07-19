@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
-import emailjs from '@emailjs/browser'; // Use emailjs to send email from within app
+// Note: EmailJS not available in this environment
 
 const ContactScreen = () => {
   const [name, setName] = useState('');
@@ -14,46 +14,37 @@ const ContactScreen = () => {
       return;
     }
 
-    const serviceID = 'service_rdevwae';
-    const templateID = 'template_tph2uqc';
-    const publicKey = 'pr973Oj1-Zn5YBcz6';
-
+    // Open email client with pre-filled content
+    const subject = encodeURIComponent('Contact from Al Kawthar Foundation App');
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
+    const emailUrl = `mailto:alkawtharfoundationBC@gmail.com?subject=${subject}&body=${body}`;
+    
     try {
-      await emailjs.send(
-        serviceID,
-        templateID,
-        {
-          from_name: name,
-          from_email: email,
-          message,
-        },
-        publicKey
-      );
-      Alert.alert('Success', 'Email sent successfully!');
+      await Linking.openURL(emailUrl);
+      Alert.alert('Success', 'Email client opened. Please send your message.');
       setName('');
       setEmail('');
       setMessage('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to send email. Please try again later.');
-      console.error('Email send error:', error);
+      Alert.alert('Error', 'Could not open email client.');
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Image source={require('@/assets/icon.png')} style={styles.logo} />
+      <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
       <Text style={styles.header}>Contact Al Kawthar Foundation</Text>
       <Text style={styles.mission}>Spreading knowledge, unity, and community service across Vancouver and beyond.</Text>
 
       <View style={styles.socialContainer}>
-        <TouchableOpacity onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=100083609100746')}>
-          <Image source={require('../assets/facebook.png')} style={styles.icon} />
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.facebook.com/profile.php?id=100083609100746')} style={styles.socialButton}>
+          <Text style={styles.socialText}>📘 Facebook</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/alkawtharfoundation/')}>
-          <Image source={require('../assets/instagram.png')} style={styles.icon} />
+        <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/alkawtharfoundation/')} style={styles.socialButton}>
+          <Text style={styles.socialText}>📷 Instagram</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => Linking.openURL('mailto:alkawtharfoundationBC@gmail.com')}>
-          <Image source={require('../assets/email.png')} style={styles.icon} />
+        <TouchableOpacity onPress={() => Linking.openURL('mailto:alkawtharfoundationBC@gmail.com')} style={styles.socialButton}>
+          <Text style={styles.socialText}>✉️ Email</Text>
         </TouchableOpacity>
       </View>
 
@@ -95,7 +86,7 @@ const ContactScreen = () => {
       <View style={styles.footer}>
         <Text style={styles.footerText}>Powered by</Text>
         <TouchableOpacity onPress={() => Linking.openURL('https://alkarartech.com')}>
-          <Image source={require('../assets/alkarartech.png')} style={styles.footerLogo} />
+          <Image source={require('@/assets/images/alkarartech.png')} style={styles.footerLogo} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -129,11 +120,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginVertical: 10,
+    gap: 10,
   },
-  icon: {
-    width: 30,
-    height: 30,
-    marginHorizontal: 10,
+  socialButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  socialText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   infoContainer: {
     alignItems: 'center',
