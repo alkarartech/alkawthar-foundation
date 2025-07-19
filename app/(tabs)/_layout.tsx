@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, Calendar, BookOpen, Play, MapPin } from "lucide-react-native";
+import { Home, Calendar, BookOpen, Play, Mail } from "lucide-react-native";
 import React from "react";
 import Colors from "@/constants/colors";
 import ResponsiveNavigation from "@/components/ResponsiveNavigation";
@@ -52,7 +52,7 @@ export default function TabLayout() {
         name="contact"
         options={{
           title: "Contact",
-          tabBarIcon: ({ color }) => <MapPin size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Mail size={24} color={color} />,
         }}
       />
     </Tabs>
