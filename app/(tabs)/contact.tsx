@@ -1,24 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Linking, ScrollView, Alert, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
-import emailjs from '@emailjs/browser';
 import Header from '@/components/Header';
 
 const ContactScreen = () => {
+  const [title, setTitle] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Initialize EmailJS
-  React.useEffect(() => {
-    emailjs.init({
-      publicKey: "pr973Oj1-Zn5YBcz6",
-    });
-  }, []);
+  const webViewRef = useRef<WebView>(null);
 
   const handleEmailSend = async () => {
-    if (!name || !email || !message) {
+    if (!title || !name || !email || !message) {
       Alert.alert('Error', 'Please fill out all fields.');
       return;
     }
@@ -26,29 +20,75 @@ const ContactScreen = () => {
     setIsLoading(true);
 
     try {
-      const templateParams = {
-        from_name: name,
-        from_email: email,
-        message: message,
-        to_email: 'alkawtharfoundationBC@gmail.com',
-      };
+      // Create the EmailJS HTML content with proper escaping
+      const escapedTitle = title.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedName = name.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedEmail = email.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedMessage = message.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
 
-      await emailjs.send(
-        'service_rdevwae',
-        'template_tph2uqc',
-        templateParams
-      );
+      const emailJSHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+        </head>
+        <body>
+          <script type="text/javascript">
+            (function(){
+              emailjs.init({
+                publicKey: "pr973Oj1-Zn5YBcz6",
+              });
+            })();
 
-      Alert.alert('Success', 'Your message has been sent successfully!');
-      setName('');
-      setEmail('');
-      setMessage('');
+            emailjs.send("service_rdevwae","template_tph2uqc",{
+              title: "${escapedTitle}",
+              name: "${escapedName}",
+              message: "${escapedMessage}",
+              email: "${escapedEmail}",
+            }).then(function(response) {
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({success: true}));
+              }
+            }, function(error) {
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({success: false, error: error}));
+              }
+            });
+          </script>
+        </body>
+        </html>
+      `;
+
+      if (webViewRef.current) {
+        webViewRef.current.injectJavaScript(`
+          document.open();
+          document.write(\`${emailJSHTML.replace(/`/g, '\\`')}\`);
+          document.close();
+        `);
+      }
     } catch (error) {
       console.error('EmailJS error:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
-    } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.success) {
+        Alert.alert('Success', 'Your message has been sent successfully!');
+        setTitle('');
+        setName('');
+        setEmail('');
+        setMessage('');
+      } else {
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -79,6 +119,12 @@ const ContactScreen = () => {
         <Text style={styles.formHeader}>Send Us a Message</Text>
         <TextInput
           style={styles.input}
+          placeholder="Subject/Title"
+          value={title}
+          onChangeText={setTitle}
+        />
+        <TextInput
+          style={styles.input}
           placeholder="Your Name"
           value={name}
           onChangeText={setName}
@@ -106,6 +152,16 @@ const ContactScreen = () => {
             {isLoading ? 'Sending...' : 'Send Message'}
           </Text>
         </TouchableOpacity>
+
+        <Text style={styles.formHeader}>Google Feedback Form</Text>
+        <WebView
+          ref={webViewRef}
+          style={{ height: 0, width: 0 }}
+          onMessage={handleWebViewMessage}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          source={{ html: '<html><body></body></html>' }}
+        />
 
         <Text style={styles.formHeader}>Google Feedback Form</Text>
         <View style={{ height: 400, width: '100%', marginVertical: 10 }}>
